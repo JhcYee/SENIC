@@ -9,11 +9,7 @@ selected from the original 338 hospitals surveyed. The data presented is for the
 information on 11 other variables for a single hospital.
 
 Variable Descriptions:
-| Variable Number | Variable Name | Description
-|
-|-----------------|-----------------------------------|----------------------------
------------------------------------------------------------------------------------
-----|
+Variable Number, Variable Name, Variable Description
 | 1 | Length of Stay | Average length of stay of
 all patients in hospital (in days)
 |
