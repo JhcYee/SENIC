@@ -1,4 +1,5 @@
 # SENIC
+
 The primary objective of the Study on the Efficacy of Nosocomial Infection Control
 (SENIC Project) was to determine whether infection surveillance and control
 programs have reduced the rates of nosocomial (hospital-acquired) infections in
@@ -6,6 +7,7 @@ United States hospitals. This dataset consists of a random sample of 113 hospita
 selected from the original 338 hospitals surveyed. The data presented is for the
 1975-76 study period. Each row of the dataset contains an identification number and
 information on 11 other variables for a single hospital.
+
 Variable Descriptions:
 | Variable Number | Variable Name | Description
 |
