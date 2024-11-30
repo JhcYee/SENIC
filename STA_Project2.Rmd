@@ -1,0 +1,210 @@
+---
+title: "STA_Project 2 R Appendix"
+author: "Justin Yee"
+date: "2024-11-22"
+output: pdf_document
+---
+
+```{r libraries}
+library(ggplot2)
+library(dplyr)
+library(tidyverse)
+library(car)
+library(EnvStats)
+library(onewaytests)
+library(rcompanion)
+library(corrplot)
+
+data = read_csv("/Users/justin/Documents/RStudio/SENIC2.csv")
+options(scipen = 999)
+```
+
+```{r EDA}
+summary(data)
+
+ggplot(data, aes(x = x1, y = y)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE, color = "red") +
+  labs(title = "Length of Stay in Hospital (Days) vs. Age", x = "Age", 
+       y = "Length of Stay in Hospital (Days)")
+
+ggplot(data, aes(x = x2, y = y)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE, color = "red") +
+  labs(title = "Length of Stay in Hospital (Days) vs. Infection Risk", x = "Infection Risk", 
+       y = "Length of Stay in Hospital (Days)")
+
+ggplot(data, aes(x = x3, y = y)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE, color = "red") +
+  labs(title = "Length of Stay in Hospital (Days) vs. Routine Culturing Ratio", 
+       x = "Routine Culturing Ratio", y = "Length of Stay in Hospital (Days)")
+
+ggplot(data, aes(x = x4, y = y)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE, color = "red") +
+  labs(title = "Length of Stay in Hospital (Days) vs. Routine Chest X-ray Ratio", 
+       x = "Routine Chest X-ray Ratio", y = "Length of Stay in Hospital (Days)")
+
+ggplot(data, aes(x = x5, y = y)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE, color = "red") +
+  labs(title = "Length of Stay in Hospital (Days) vs. Number of Beds", x = "Number of Beds", 
+       y = "Length of Stay in Hospital (Days)")
+
+ggplot(data, aes(x = x6, y = y)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE, color = "red") +
+  labs(title = "Length of Stay in Hospital (Days) vs. Medical School Affiliation (1 = Yes, 2 = No)", 
+       x = "Medical School Affiliation (1 = Yes, 2 = No)", y = "Length of Stay in Hospital (Days)")
+
+ggplot(data, aes(x = x7, y = y)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE, color = "red") +
+  labs(title = "Length of Stay in Hospital (Days) vs. Region (1 = NE, 2 = NC, 3 = S, 4 = W)", 
+       x = "Region (1 = NE, 2 = NC, 3 = S, 4 = W)", y = "Length of Stay in Hospital (Days)")
+
+ggplot(data, aes(x = x8, y = y)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE, color = "red") +
+  labs(title = "Length of Stay in Hospital (Days) vs. Average Daily Census", 
+       x = "Average Daily Census", y = "Length of Stay in Hospital (Days)")
+
+ggplot(data, aes(x = x9, y = y)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE, color = "red") +
+  labs(title = "Length of Stay in Hospital (Days) vs. Number of Nurses", x = "Number of Nurses", 
+       y = "Length of Stay in Hospital (Days)")
+
+ggplot(data, aes(x = x10, y = y)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE, color = "red") +
+  labs(title = "Length of Stay in Hospital (Days) vs. Available Facilities and Services (%)", 
+       x = "Available Facilities and Services (%)", y = "Length of Stay in Hospital (Days)")
+
+ggplot(data, aes(x = y)) +
+  geom_histogram() +
+  labs(title = "Length of Stay in Hospital (Days)", y = "Length of Stay in Hospital (Days)")
+
+#There are a few outliers while each predictors seem to have a linear relationship
+#with the response variable. Though these charts, we can see that there is a clear
+#linear relationship. I want to find the model that best represents correctness.
+
+data$x6 <- factor(data$x6, levels = c(1, 2), labels = c(1, 0)) 
+data$x7 = factor(data$x7, levels = c(1, 2, 3, 4), labels = c(1, 2, 3, 4))
+data_full_model = lm(y ~ x1 + x2 + x3 + x4 + x5 + x6 + x7 + x8 + x9 + x10, data = data)
+plot(data_full_model)
+```
+
+```{r Model Selection}
+data_null_model = lm(y ~ 1, data = data)
+vif(data_full_model)
+
+x5_model = lm(y ~ x1 + x2 + x3 + x4 + x5 + x6 + x7 + x9 + x10, data = data)
+x8_model = lm(y ~ x1 + x2 + x3 + x4 + x6 + x8 + x7 + x9 + x10, data = data)
+BIC(x5_model) #remove
+BIC(x8_model)
+#Since the model with x5 has a higher BIC value, I would remove x5 instead of x8 
+#from the data and the full model
+#I would also remove x9 since it also has high correlation with other predictors
+
+data_full_model = lm(y ~ x1 + x2 + x3 + x4 + x6 + x8 + x7 + x10, data = data)
+forward_model_BIC <- step(data_null_model, 
+                          scope = list(lower = data_null_model, upper = data_full_model), 
+                          direction = "forward", 
+                          k = log(nrow(data)),
+                          trace = TRUE)
+summary(forward_model_BIC)
+plot(forward_model_BIC)
+vif(forward_model_BIC)
+
+cor_matrix <- cor(data[, sapply(data, is.numeric)], use = "complete.obs")
+corrplot(cor_matrix, method = "circle")
+BIC(forward_model_BIC)
+#Adjusted R-squared:  0.531
+#Since x8 and x9 are similar and x8 better explain the variability of the data, I will
+#remove x9 from the final model
+final_model = forward_model_BIC
+```
+
+```{r Model Diagnostics}
+data$standardized_residuals = rstandard(final_model)
+data$cooks_distance = cooks.distance(final_model)
+data$leverage = hatvalues(final_model)
+
+leverage_threshold = (2 * 7) / nrow(data)
+data$high_leverage = data$leverage > leverage_threshold
+clean_data = subset(data, leverage <= leverage_threshold)
+cooks_threshold = 4 / (nrow(data) - 7 - 1)
+data$high_influential = data$cooks_distance > cooks_threshold
+clean_data = subset(clean_data, cooks_distance <= cooks_threshold)
+
+# Flag and remove outliers
+t_val = qt(1 - 0.05/ (2 * nrow(clean_data)), (nrow(clean_data) - 7))
+data$outliers = abs(data$standardized_residuals) > t_val
+clean_data = subset(clean_data, abs(standardized_residuals) <= t_val)
+write.csv(data,"/Users/justin/Documents/RStudio/SENIC2_outliers.csv")
+
+clean_model = lm(y ~ x2 + x7 + x8 + x1, data = clean_data)
+plot(clean_model)
+summary(clean_model)
+
+#Shapiro-Wilks Test for Normality
+shapiro.test(resid(clean_model))
+#Shapiro p-value = 0.6818
+#Since p-value is larger than alpha = 0.05, I fail to reject the null hypothesis
+#Normality assumption satisfied
+
+#Fligner Killeen Test for constant variance
+fitted_value = fitted(clean_model)
+fitted_groups <- ifelse(fitted_value <= median(fitted_value), "Group 1", "Group 2")
+fligner.test(resid(clean_model) ~ fitted_groups)
+#Fligner p-value = 0.5271
+#Since p-value is greater than alpha = 0.05, I fail to reject the null hypothesis and
+#conclude that there is equal variance across two groups
+#Equal variance assumption satisfied
+
+#Levene Test for constant variance
+levene_data = data.frame(x = as.factor(fitted_groups), y = clean_data$y)
+levene_result = leveneTest(y ~ x, levene_data)
+levene_result
+#Levene p-value = 0.1483
+#Since p-value is greater alpha = 0.05, I fail to reject the null hypothesis and 
+#conclude that there is equal variance across the two groups
+```
+
+```{r Analysis and Interpretation}
+#Simultaneous Confidence Intervals
+confint(clean_model, level = 1 -0.05 / length(coef(clean_model)))
+
+#                  0.357 %     99.643 %
+# (Intercept) -0.627694025  6.431991874
+# x2           0.326131293  0.772836053
+# x72         -1.296832563  0.059060291
+# x73         -1.673988153 -0.335772103
+# x74         -3.222410709 -1.473052775
+# x8           0.000031139  0.004007313
+# x1           0.026036850  0.148367372
+
+
+#Ho: Beta_i = 0, i = 1, 2, 7, 8. The predictor does not contribute significantly to the model
+#Ha: Beta_i != 0, i = 1, 2, 7, 8. The predictor contributes significantly to the model
+
+anova(clean_model)
+
+# Analysis of Variance Table
+# 
+# Response: y
+#           Df Sum Sq Mean Sq F value              Pr(>F)    
+# x2         1 72.697  72.697 91.3701 0.00000000000000132 ***
+# x7         3 52.989  17.663 22.1998 0.00000000005298711 ***
+# x8         1  4.336   4.336  5.4493           0.0216607 *  
+# x1         1 12.221  12.221 15.3599           0.0001666 ***
+# Residuals 96 76.381   0.796                                
+# ---
+# Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+plot(fitted(clean_model), resid(clean_model)) 
+#Residuals has no apparent patterns and scattered evenly across the plot suggesting linearity.
+```
+
